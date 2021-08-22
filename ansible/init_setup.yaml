@@ -1,0 +1,42 @@
+---
+- hosts: master
+  become: yes
+  pre_tasks:
+  - name: Show IP  
+    debug:
+      msg: "{{ ansible_host }}"
+  - name: Show hostname
+    shell: hostname && hostname -i
+    register: hostname
+  - debug:
+      msg: "{{ hostname.stdout }}"
+  roles:
+    - docker
+    - WP
+  tasks:
+  - name: Connectivity checks
+    block:
+      - name: Check connection
+        wait_for:
+          host: localhost
+          port: 8000
+          timeout: 15
+        register: out
+      - name: Test
+        uri:
+          url: "http://localhost:8000"
+          return_content: yes
+        register: out
+      - name: Print output
+        debug:
+          msg: "Status: {{ out.status }}"
+      - name: Notify Slack if all tasks complete
+        include_role:
+          name: notification
+          tasks_from: good
+    rescue:
+      - name: Notify Slack if tasks failed
+        include_role:
+          name: notification 
+          tasks_from: bad 
+

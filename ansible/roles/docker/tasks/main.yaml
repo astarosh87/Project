@@ -1,0 +1,54 @@
+---
+- name: Install packages using apt
+  apt:
+    name: 
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - gnupg2
+        - software-properties-common
+    state: present
+    update_cache: no
+
+- name: Add Docker GPG apt Key
+  apt_key:
+    url: "{{ docker_apt_gpg_key }}"
+    state: present
+
+- name: Add Docker Repository
+  apt_repository:
+    repo: "{{ docker_apt_repository }}"
+
+- name: Update apt and install docker-ce
+  apt: 
+    name: docker-ce  
+    state: present
+    update_cache: yes
+
+- name: Check current docker-compose version.
+  command: docker-compose --version
+  register: docker_compose_vsn
+  changed_when: false
+  failed_when: false
+  check_mode: no
+
+- name: set docker compose current version
+  set_fact:
+    docker_compose_current_version: "{{ docker_compose_vsn.stdout | regex_search('(\\d+(\\.\\d+)+)') }}"
+  when:
+    - docker_compose_vsn.stdout is defined
+
+- name: Install or upgrade docker-compose
+  get_url:
+    url : "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-Linux-x86_64"
+    dest: /usr/local/bin/docker-compose
+    mode: 'a+x'
+    force: yes
+  when:
+    - docker_compose_current_version == "" or docker_compose_current_version is version(docker_compose_version, '<')
+
+- name: Run and enable docker
+  service:
+    name: docker
+    state: started
+    enabled: true

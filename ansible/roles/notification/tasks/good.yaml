@@ -1,0 +1,8 @@
+- name: Notification to Slack if all tasks complete without errors
+  slack:
+    username: 'Ansible sender'
+    color: good
+    icon_url: https://agardner.net/wp-content/uploads/2018/08/ansible-logo.png
+    token: "{{ slack_token }}"
+    channel: "#ansible_channel"
+    msg: "All ansible tasks on {{ ansible_host }} \n completed at {{ ansible_date_time.time }} {{ ansible_date_time.date }}." 

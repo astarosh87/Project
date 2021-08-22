@@ -1,0 +1,43 @@
+---
+- name: Create a working directory
+  file:
+    path: /data
+    state: directory
+    owner: root
+    group: root
+    mode: 0777
+
+- name: Create a directory wordpress
+  file:
+    path: /data/wordpress
+    state: directory
+    owner: root
+    group: root
+    mode: 0777
+
+- name: Create a directory db
+  file:
+    path: /data/db
+    state: directory
+    owner: root
+    group: root
+    mode: 0777
+
+- name: Create a directory backup
+  file:
+    path: /data/backups
+    state: directory
+    owner: root
+    group: root
+    mode: 0777
+
+- name: copy Docker Compose file
+  copy:
+    src: /home/vit/Work/Project/git_local/Project/docker-compose.yaml
+    dest: /data/docker-compose.yaml
+  
+- name: deploy Docker Compose stack
+  become: True
+  shell:
+    cmd: "docker-compose up -d"
+    chdir: /data

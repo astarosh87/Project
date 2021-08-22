@@ -1,0 +1,80 @@
+---
+- hosts: master
+  become: yes
+ 
+  tasks:
+    - name: Stop docker containers
+      shell: 
+        cmd: "docker-compose stop wordpress && docker-compose stop db && docker-compose stop phpmyadmin"
+        chdir: /data
+    
+    - name: Advanced backup uder data
+      shell: 
+        cmd: "rsync -aR /data/db /data/wordpress /data/backups"
+        chdir: /data
+
+    - name: Remove docker container
+      shell: 
+        cmd: "docker-compose rm -vf wordpress && docker-compose rm -vf db && docker-compose rm -vf phpmyadmin"
+        chdir: /data
+        
+    - name: Create update directory
+      file:
+        path: /data/update_container
+        state: directory
+        owner: root
+        group: root
+        mode: 0777
+    
+    - name: copy Docker Compose file
+      copy:
+        src: /home/vit/Work/Project/git_local/Project/update_containers/docker-compose.yaml
+        dest: /data/update_container/docker-compose.yaml
+    
+    - name: Docker run new container
+      shell: 
+        cmd: "docker-compose up -d"
+        chdir: /data/update_container
+
+    - name: Connectivity checks
+      block:
+      - name: Check connection
+        wait_for:
+          host: localhost
+          port: 8000
+          timeout: 15
+        register: out
+      - name: Test
+        uri:
+          url: "http://localhost:8000"
+          return_content: yes
+        register: out
+      - name: Print output
+        debug:
+          msg: "Status: {{ out.status }}"
+      - name: Notify Slack if all tasks complete
+        include_role:
+          name: notification
+          tasks_from: good
+      rescue:
+      - name: Notify Slack if tasks failed
+        include_role:
+          name: notification
+          tasks_from: bad
+      - name: Stop docker containers
+        shell: 
+          cmd: "docker-compose stop wordpress && docker-compose stop db && docker-compose stop phpmyadmin"
+          chdir: /data/update_container
+    
+      - name: Advanced backup uder data
+        shell: 
+          cmd: "rsync -aR /data/db /data/wordpress /data/backups"
+          chdir: /data/update_container
+
+      - name: Remove docker container
+        shell: 
+          cmd: "docker-compose rm -vf wordpress && docker-compose rm -vf db && docker-compose rm -vf phpmyadmin"
+          chdir: /data/update_container
+      - name: Rollback older version
+        include_role:
+          name: WP

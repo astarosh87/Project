@@ -1,0 +1,8 @@
+- name: Notification to Slack if tasks failed
+  slack:
+    username: 'Ansible sender'
+    color: danger
+    icon_url: https://agardner.net/wp-content/uploads/2018/08/ansible-logo.png
+    token: "{{ slack_token }}"
+    channel: "#ansible_channel"
+    msg: " Ansible tasks failed on {{ ansible_host }} at {{ ansible_date_time.time }} {{ ansible_date_time.date }} "
